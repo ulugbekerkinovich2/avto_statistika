@@ -1,0 +1,1 @@
+from conf.wsgi import application
