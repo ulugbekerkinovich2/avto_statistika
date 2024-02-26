@@ -15,7 +15,7 @@ SECRET_KEY = 'django-insecure-3s$vp(&%=5j-)$4p%c-5%fjg^&wtxk*gt-m35(42$&q920(6l7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["statusdev.uz", '127.0.0.1']
+ALLOWED_HOSTS = ["127.0.0.1", "185.217.131.98"]
 BASE_URL = 'http://statusdev.uz'
 # Application definition
 
@@ -172,3 +172,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+try:
+    from .local_settings import *
+except ImportError:
+    from .prod_settings import *
