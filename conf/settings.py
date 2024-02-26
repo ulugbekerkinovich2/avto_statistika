@@ -15,7 +15,7 @@ SECRET_KEY = 'django-insecure-3s$vp(&%=5j-)$4p%c-5%fjg^&wtxk*gt-m35(42$&q920(6l7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "185.217.131.98"]
+ALLOWED_HOSTS = ["127.0.0.1", "185.217.131.98", "https://avto-statistics.netlify.app/"]
 BASE_URL = 'http://statusdev.uz'
 # Application definition
 
