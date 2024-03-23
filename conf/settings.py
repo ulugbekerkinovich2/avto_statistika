@@ -16,7 +16,7 @@ SECRET_KEY = 'django-insecure-3s$vp(&%=5j-)$4p%c-5%fjg^&wtxk*gt-m35(42$&q920(6l7
 DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "185.217.131.98", "https://avto-statistics.netlify.app/"]
-BASE_URL = 'http://statusdev.uz'
+BASE_URL = 'http://127.0.0.1:8000'
 # Application definition
 
 INSTALLED_APPS = [
@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'django_cleanup',
     'rest_framework_simplejwt',
     'corsheaders',
+    'drf_spectacular',
 ]
 ADMIN_TOOLS_INDEX_DASHBOARD = 'basic_app.dashboard.CustomIndexDashboard'
 CORS_ALLOW_ALL_ORIGINS = True
@@ -48,6 +49,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
 
 ROOT_URLCONF = 'conf.urls'
 
@@ -111,12 +117,23 @@ SIMPLE_JWT = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db_release.sqlite3',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db_release.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'avto',              # Your database name
+        'USER': 'postgres',          # Your database user
+        'PASSWORD': '1234',          # Your database user's password
+        'HOST': 'localhost',               # Your database host (use 'localhost' if the database is on the same machine)
+        'PORT': '5432',                    # Your database port (default PostgreSQL port is 5432)
     }
 }
+
 
 CACHES = {
     'default': {
@@ -172,7 +189,12 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-try:
-    from .local_settings import *
-except ImportError:
-    from .prod_settings import *
+
+
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Avto statistics',
+    'DESCRIPTION': 'API avto statistics',
+    'VERSION': '2.4.1',
+    # Other customizations
+}

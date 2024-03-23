@@ -10,12 +10,12 @@ from .views import ListFile, ListFile2, ListData21, ListData22, ListMark, ListMo
 from .views3 import ListMarks23, ListMarks19
 
 urlpatterns = [
-    path('file_2021/', ListFile.as_view()),  # file yuklash uchun
-    path('file_2022/', ListFile2.as_view()),  # file yuklash uchun
-    path('data21/', ListData21.as_view()),  # filedan kelgan data
-    path('data22/', ListData22.as_view()),  # filedan kelgan data
-    path('data_marks/', ListMark.as_view()),
-    path('data_models/', ListModel1.as_view()),
+    # path('file_2021/', ListFile.as_view()),  # file yuklash uchun
+    # path('file_2022/', ListFile2.as_view()),  # file yuklash uchun
+    # path('data21/', ListData21.as_view()),  # filedan kelgan data
+    # path('data22/', ListData22.as_view()),  # filedan kelgan data
+    # path('data_marks/', ListMark.as_view()),
+    # path('data_models/', ListModel1.as_view()),
 
     # path('statis21_when_get_models_by_id/', ListData21Statistics.as_view()),
     # path('statis22_when_get_models_by_id/', ListData22Statistics.as_view()),
@@ -36,7 +36,7 @@ urlpatterns += [
     path('only_marks19/', ListMarks19.as_view()),
     path('only_marks16/', ListMarks16.as_view()),
     path('search/', MarkSearchView.as_view()),  # TODO /?mark_id=Chevrolet by id
-    path('file3/', UploadFile.as_view()),
+    # path('file3/', UploadFile.as_view()),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

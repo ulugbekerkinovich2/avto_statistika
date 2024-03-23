@@ -2,3 +2,9 @@ files
 files2
 files3
 cache
+.db_release.sqlite3
+tmp
+media
+.idea
+venv
+__pycache__

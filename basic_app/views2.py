@@ -241,14 +241,14 @@ class MarkSummaryView(APIView):
                 'data': formatted_data,
                 'all_count_of_in_each_model': self.format_number(all_count_of_in_each_model),
                 'all_sum_of_costs_vehicle': self.format_money(all_sum_of_costs_vehicle),
-                'image_url': imgs[-1]
+                'image_url': imgs[0] if imgs[0] else 'image not found'
             }
-            cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}', datas_, timeout=60 * 60 * 24)
+            # cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}', datas_, timeout=60 * 60 * 24)
             return Response(datas_)
         elif mark_name_search is None:
-            cached_data_isnone = cache.get(f'mark_summary_{latest_file_id}_{mark_name_search}_')
-            if cached_data_isnone is not None:
-                return Response(cached_data_isnone)
+            # cached_data_isnone = cache.get(f'mark_summary_{latest_file_id}_{mark_name_search}_')
+            # if cached_data_isnone is not None:
+            #     return Response(cached_data_isnone)
 
             latest_file_id = Data20.objects.aggregate(latest_file_id=Max('file_id'))['latest_file_id']
 
@@ -316,7 +316,7 @@ class MarkSummaryView(APIView):
                 'all_count_of_vehicles': self.format_number(all_count_of_vehicles),
                 'all_sum_of_costs_vehicle': self.format_money(all_sum_of_cost_vehicles)
             }
-            cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}_', data_, timeout=60 * 60 * 24)
+            # cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}_', data_, timeout=60 * 60 * 24)
             return Response(data_)
 
 

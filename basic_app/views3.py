@@ -8,11 +8,17 @@ from rest_framework.response import Response
 from basic_app import models
 from basic_app.models import Data23, Model1, Data19
 from django.core.cache import cache
-
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from utils.image_marks import mark_images
 
 
 class ListMarks23(generics.ListAPIView):
+    # @extend_schema(
+    #     parameters=[
+    #         OpenApiParameter(name='?mark_name', description='Description of mark_name', required=False, type=OpenApiTypes.STR),
+    #     ]
+    # )
     def format_number(self, number):
         number_str = str(number)[::-1]
         groups = [number_str[i:i + 3] for i in range(0, len(number_str), 3)]
@@ -110,11 +116,12 @@ class ListMarks23(generics.ListAPIView):
                     'cost': format_money,
                 }
                 formatted_data.append(obj)
+            print(imgs)
             datas_ = {
                 'data': formatted_data,
                 'all_count_of_in_each_model': self.format_number(all_count_of_in_each_model),
                 'all_sum_of_cost_vehicle': self.format_money(all_sum_of_cost_vehicle),
-                'image_url': imgs[-1]
+                'image_url': imgs[0] if imgs else 'image not found',
             }
             # cache.set(f'cached_data_2023_{mark_name_search}', datas_, timeout=3600)
             return Response(datas_)

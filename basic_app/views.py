@@ -249,7 +249,7 @@ class ListMarks22(generics.ListAPIView):
                 'all_count_of_models': all_count_of_models,
                 'all_count_of_vehicles': self.format_number(all_count_of_vehicles),
                 'all_sum_of_costs_vehicle': self.format_money(all_sum_of_costs),
-                'image_url': imgs[-1]
+                'image_url': imgs if imgs else 'image not found',
             }
             # cache.set('cached_data_2022', data_, timeout=60 * 60 * 24 * 7)
             return Response(data_)
@@ -489,7 +489,7 @@ class ListMarks21(APIView):
                 'all_count_of_models': all_count_of_models,
                 'all_count_of_vehicles': self.format_number(all_count_of_vehicles),
                 'all_sum_of_costs_vehicle': self.format_money(all_sum_of_costs),
-                'image_url': imgs[-1]
+                'image_url': imgs if imgs else 'image not found',
             }
             # cache.set('cached_data_2021_marks', data_, timeout=60 * 60 * 24)
             return Response(data_)

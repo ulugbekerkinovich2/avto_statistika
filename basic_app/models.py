@@ -74,8 +74,8 @@ class Model1(models.Model):
 
 class DATA21(models.Model):
     time = models.DateTimeField(auto_created=True, default=datetime.datetime.now, verbose_name='data yaratilgan vaqti')
-    file_id = models.ForeignKey(Upload_File, on_delete=models.CASCADE)
-    sana = models.DateField()
+    file_id = models.ForeignKey(Upload_File, on_delete=models.CASCADE, null=True, blank=True)
+    sana = models.DateField(null=True, blank=True)
     model = models.ForeignKey(Model1, on_delete=models.CASCADE, related_name='data21')
     mark = models.ForeignKey(Mark, on_delete=models.CASCADE)
     product_count = models.PositiveIntegerField(default=0)
@@ -91,9 +91,9 @@ class DATA21(models.Model):
 
 
 class DATA22(models.Model):
-    time = models.DateTimeField(auto_created=True, verbose_name='data yaratilgan vaqti')
-    file_id = models.ForeignKey(Upload_File2, on_delete=models.CASCADE)
-    sana = models.DateField()
+    time = models.DateTimeField(auto_created=True, verbose_name='data yaratilgan vaqti', null=True, blank=True)
+    file_id = models.ForeignKey(Upload_File2, on_delete=models.CASCADE, null=True, blank=True)
+    sana = models.DateField(null=True, blank=True)
     model = models.ForeignKey(Model1, on_delete=models.CASCADE, related_name='data22')
     mark = models.ForeignKey(Mark, on_delete=models.CASCADE)
     country = models.CharField(max_length=100)
@@ -129,8 +129,8 @@ def upload_file3_post_save(sender, instance, created, **kwargs):
 
 class Data20(models.Model):
     time = models.DateField(auto_created=True, default=datetime.date.today, verbose_name='data yaratilgan vaqt')
-    file_id = models.ForeignKey(Upload_File3, on_delete=models.CASCADE)
-    sana = models.DateField()
+    file_id = models.ForeignKey(Upload_File3, on_delete=models.CASCADE, null=True, blank=True)
+    sana = models.DateField(null=True, blank=True)
     model = models.ForeignKey(Model1, on_delete=models.CASCADE, related_name='data20')
     mark = models.ForeignKey(Mark, on_delete=models.CASCADE)
     country = models.CharField(max_length=255)
@@ -186,8 +186,8 @@ def upload_file5_post_save(sender, instance, created, **kwargs):
 class Data19(models.Model):
     mode = models.CharField(max_length=20, null=True)
     time = models.DateField(auto_created=True, default=datetime.date.today, verbose_name='yaratilgan vaqt')
-    file_id = models.ForeignKey(Upload_File5, on_delete=models.CASCADE)
-    sana = models.DateField()
+    file_id = models.ForeignKey(Upload_File5, on_delete=models.CASCADE, null=True, blank=True)
+    sana = models.DateField(null=True, blank=True)
     model = models.ForeignKey(Model1, on_delete=models.CASCADE, related_name='data19')
     mark = models.ForeignKey(Mark, on_delete=models.CASCADE)
     country = models.CharField(max_length=255, null=True)
@@ -205,7 +205,7 @@ class Data19(models.Model):
 class Data16(models.Model):
     time = models.DateField(auto_created=True, default=datetime.date.today, verbose_name='data yaratilgan vaqt')
     file_id = models.ForeignKey(Upload_File4, on_delete=models.CASCADE)
-    sana = models.DateField(default=datetime.date.today)
+    sana = models.DateField(default=datetime.date.today,  null=False)
     model = models.ForeignKey(Model1, on_delete=models.CASCADE)
     mark = models.ForeignKey(Mark, on_delete=models.CASCADE)
     country = models.CharField(max_length=255)
@@ -240,8 +240,8 @@ def upload_file6_post_save(sender, instance, created, **kwargs):
 class Data23(models.Model):
     mode = models.CharField(max_length=20, null=True)
     time = models.DateField(auto_created=True, default=datetime.date.today, verbose_name='yaratilgan vaqt')
-    file_id = models.ForeignKey(Upload_File6, on_delete=models.CASCADE)
-    sana = models.DateField()
+    file_id = models.ForeignKey(Upload_File6, on_delete=models.CASCADE, null=True, blank=True)
+    sana = models.DateField(null=True, blank=True)
     model = models.ForeignKey(Model1, on_delete=models.CASCADE, related_name='data23')
     mark = models.ForeignKey(Mark, on_delete=models.CASCADE)
     country = models.CharField(max_length=255, null=True)
