@@ -2,12 +2,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
 
-from basic_app.views2 import MarkSummaryView, MarkSearchView, UploadFile, ModelCountByMonthView2021, \
+from basic_app.views2 import MarkSummaryViewNew, MarkSearchView1, UploadFile, ModelCountByMonthView2021, \
     ModelCountByMonthView2022, ModelSearchByMonth, DashboardYearsStatisticsView, \
     DashboardByYearly, DashboardTopMarks, ModelCountByMonthView2019, ModelCountByMonthView2023
 from .views import ListFile, ListFile2, ListData21, ListData22, ListMark, ListModel1, ListMarks22, ListMarks21, \
-    ListMarks16
-from .views3 import ListMarks23, ListMarks19
+    ListMarks16,ListMarks22New
+from .views3 import ListMarks23, ListMarks19, Percentage,ListMarks23New,CalculatePercentageView
 
 urlpatterns = [
     # path('file_2021/', ListFile.as_view()),  # file yuklash uchun
@@ -29,13 +29,13 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('marks/', MarkSummaryView.as_view()),  # TODO  , 2020 yildagi full data
-    path('only_marks23/', ListMarks23.as_view()),
-    path('only_marks22/', ListMarks22.as_view()),
+    path('marks/', MarkSummaryViewNew.as_view()),  # TODO  , 2020 yildagi full data
+    path('only_marks23/', ListMarks23New.as_view()),
+    path('only_marks22/', ListMarks22New.as_view()),
     path('only_marks21/', ListMarks21.as_view()),
     path('only_marks19/', ListMarks19.as_view()),
     path('only_marks16/', ListMarks16.as_view()),
-    path('search/', MarkSearchView.as_view()),  # TODO /?mark_id=Chevrolet by id
+    path('search/', MarkSearchView1.as_view()),  # TODO /?mark_id=Chevrolet by id
     # path('file3/', UploadFile.as_view()),
 
 
@@ -50,8 +50,9 @@ urlpatterns += [
     path('model_search2022/', ModelCountByMonthView2022.as_view()),  # TODO /?mark_name=Dodge,
     path('model_search2023/', ModelCountByMonthView2023.as_view()),  # TODO /?mark_name=Dodge,
 
-    path('dashboard/', DashboardYearsStatisticsView.as_view()),
+    path('new_dashboard/', DashboardYearsStatisticsView.as_view()),
     path('yearly/', DashboardByYearly.as_view()),
     path('dashboard/top_marks/', DashboardTopMarks.as_view()),
+    path('dashboard/percentage/',  CalculatePercentageView.as_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

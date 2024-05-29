@@ -20,7 +20,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from utils.image_marks import mark_images
-
+from conf.settings import CACHE_TIME
 
 # class MarkSummaryView(generics.ListAPIView):
 #     serializer_class = MarkSummarySerializer
@@ -140,13 +140,13 @@ class ModelSearchByMonth(APIView):
                 'cost': self.format_money(i['cost'])
             }
             formatted_data.append(obj)
-        print(models_)
+#        print(models_)
         data_ = {
             'data': formatted_data,
             'all_count_vehicles': (self.format_money(result_count)).split('.')[0],
             'all_cost_of_vehicles': self.format_money(all_cost_of_vehicles)
         }
-        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=60 * 60 * 24)
+        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=CACHE_TIME)
         return Response(data_)
 
 
@@ -216,12 +216,12 @@ class MarkSummaryView(APIView):
                 else:
                     data_from_search.append(searched_datas)
 
-            all_sum_of_costs_vehicle = sum(i['cost'] for i in data_from_search)
+            all_sum_of_costs_vehicle = sum(i['cost'] * i['count_of_in_each_model'] for i in data_from_search)
 
             formatted_data = []
             for i in data_from_search:
                 cost_ = i['cost']
-                formatted_cost = self.format_money(cost_)
+                formatted_cost = self.format_money(cost_ * i['count_of_in_each_model'])
                 obj = {
                     "mark_id": i['mark_id'],
                     "model_id": i['model_id'],
@@ -243,12 +243,12 @@ class MarkSummaryView(APIView):
                 'all_sum_of_costs_vehicle': self.format_money(all_sum_of_costs_vehicle),
                 'image_url': imgs[0] if imgs[0] else 'image not found'
             }
-            # cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}', datas_, timeout=60 * 60 * 24)
+            cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}', datas_, timeout=CACHE_TIME)
             return Response(datas_)
         elif mark_name_search is None:
-            # cached_data_isnone = cache.get(f'mark_summary_{latest_file_id}_{mark_name_search}_')
-            # if cached_data_isnone is not None:
-            #     return Response(cached_data_isnone)
+            cached_data_isnone = cache.get(f'mark_summary_{latest_file_id}_{mark_name_search}_')
+            if cached_data_isnone is not None:
+                return Response(cached_data_isnone)
 
             latest_file_id = Data20.objects.aggregate(latest_file_id=Max('file_id'))['latest_file_id']
 
@@ -269,8 +269,9 @@ class MarkSummaryView(APIView):
                     'model', 'cost').annotate(
                     count_of_models=Coalesce(Sum('count'), Value(0))
                 )
+#                pprint(models)
                 sum_count_of_vehicles = sum(model['count_of_models'] for model in models)
-                costs = round(sum(model['cost'] for model in models), 2)
+                costs = round(sum(model['cost'] * model['count_of_models'] for model in models), 2)
                 all_count_of_vehicles += sum_count_of_vehicles
                 mark_data = {
                     'mark_id': mark_id,
@@ -288,13 +289,13 @@ class MarkSummaryView(APIView):
                     matching_entry['cost'] += costs
                 else:
                     data.append(mark_data)
-
+            # pprint(data)
             all_sum_of_cost_vehicles = sum(i['cost'] for i in data if i['cost'] > 1)
 
-            formatted_data = []
+            formatted_data = [] 
             for i in data:
                 cost = i['cost']
-                formatted_cost = self.format_money(cost)
+                formatted_cost = self.format_money(cost )
                 imgs = [' ']
                 for im in img:
                     if i['mark_id'] == im['mark_name_for_image']:
@@ -316,90 +317,278 @@ class MarkSummaryView(APIView):
                 'all_count_of_vehicles': self.format_number(all_count_of_vehicles),
                 'all_sum_of_costs_vehicle': self.format_money(all_sum_of_cost_vehicles)
             }
-            # cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}_', data_, timeout=60 * 60 * 24)
+            cache.set(f'mark_summary_{latest_file_id}_{mark_name_search}_', data_, timeout=CACHE_TIME)
             return Response(data_)
-
-
-class MarkSearchView(APIView):
+class MarkSummaryViewNew(APIView):
     def format_money(self, number):
-        # Check if the number is a float
-        number = float(number)
-        return f'{number:,.2f}'
+        return f'{float(number):,.2f}'
+
+    def format_number(self, number):
+        number_str = str(number)[::-1]
+        return ' '.join([number_str[i:i + 3] for i in range(0, len(number_str), 3)])[::-1]
 
     def get(self, request, *args, **kwargs):
         img = mark_images()
         latest_file_id = Data20.objects.aggregate(latest_file_id=Max('file_id'))['latest_file_id']
+        mark_name_search = request.GET.get('mark_name', None)
+        cache_key = f'mark_summary_{latest_file_id}_{mark_name_search or "none"}'
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+
+        data = []
+        if mark_name_search:
+            searched_data = Data20.objects.filter(
+                mark__mark_name=mark_name_search,
+                file_id=latest_file_id
+            ).values(
+                'mark', 'mark__mark_name', 'model', 'model__model_name', 'count', 'cost'
+            ).annotate(count_of_each_vehicle=Count('model', distinct=True))
+
+            all_count_of_in_each_model = 0
+            data_from_search = []
+            for i in searched_data:
+                mark_id, model_id, count_of_each_vehicle = i['mark'], i['model'], i['count_of_each_vehicle']
+                model_name, count, cost = i['model__model_name'], i['count'], i['cost']
+                count = max(count, 1)
+                count_of_vehicles = count * count_of_each_vehicle
+
+                all_count_of_in_each_model += count_of_vehicles
+                searched_datas = {
+                    'mark_id': mark_id,
+                    'model_id': model_id,
+                    'model_name': model_name,
+                    'count_of_in_each_model': count_of_vehicles,
+                    'cost': round(cost)
+                }
+
+                matching_entry = next((entry for entry in data_from_search if entry['mark_id'] == mark_id and entry['model_id'] == model_id), None)
+                if matching_entry:
+                    matching_entry['count_of_in_each_model'] += count_of_vehicles
+                    matching_entry['cost'] += round(cost, 2)
+                else:
+                    data_from_search.append(searched_datas)
+
+            all_sum_of_costs_vehicle = sum(i['cost'] * i['count_of_in_each_model'] for i in data_from_search)
+
+            formatted_data = [{
+                "mark_id": i['mark_id'],
+                "model_id": i['model_id'],
+                "model_name": i['model_name'],
+                "count_of_in_each_model": i['count_of_in_each_model'],
+                "cost": self.format_money(i['cost'] * i['count_of_in_each_model'])
+            } for i in data_from_search]
+
+            img_mapping = {im['mark_name_for_image']: im['full_image_url'] for im in img}
+            imgs = [img_mapping.get(i['mark_id'], 'image not found') for i in data_from_search]
+
+            response_data = {
+                'data': formatted_data,
+                'all_count_of_in_each_model': self.format_number(all_count_of_in_each_model),
+                'all_sum_of_costs_vehicle': self.format_money(all_sum_of_costs_vehicle),
+                'image_url': imgs[0]
+            }
+        else:
+            counts_mark = Data20.objects.filter(file_id=latest_file_id).values(
+                'mark'
+            ).annotate(count_of_models=Count('model', distinct=True))
+
+            all_count_of_models = 0
+            all_count_of_vehicles = 0
+            data = []
+            for model in counts_mark:
+                mark_id, count_of_models = model['mark'], model['count_of_models']
+                all_count_of_models += count_of_models
+                mark_name = Mark.objects.get(id=mark_id).mark_name
+
+                models = Data20.objects.filter(mark_id=mark_id, file_id=latest_file_id).values('model', 'cost').annotate(count_of_models=Coalesce(Sum('count'), Value(0)))
+                sum_count_of_vehicles = sum(m['count_of_models'] for m in models)
+                costs = round(sum(m['cost'] * m['count_of_models'] for m in models), 2)
+                all_count_of_vehicles += sum_count_of_vehicles
+
+                mark_data = {
+                    'mark_id': mark_id,
+                    'mark_name': mark_name,
+                    'count_of_models': count_of_models,
+                    'count_of_vehicles': sum_count_of_vehicles,
+                    'cost': costs
+                }
+
+                matching_entry = next((entry for entry in data if entry['mark_id'] == mark_id and entry['mark_name'] == mark_name and entry['count_of_models'] == count_of_models), None)
+                if matching_entry:
+                    matching_entry['count_of_vehicles'] += sum_count_of_vehicles
+                    matching_entry['cost'] += costs
+                else:
+                    data.append(mark_data)
+
+            all_sum_of_cost_vehicles = sum(i['cost'] for i in data if i['cost'] > 1)
+
+            formatted_data = [{
+                "mark_id": i['mark_id'],
+                "mark_name": i['mark_name'],
+                "count_of_models": i['count_of_models'],
+                "count_of_vehicles": i['count_of_vehicles'],
+                "cost": self.format_money(i['cost']),
+                'image_url': next((im['full_image_url'] for im in img if i['mark_id'] == im['mark_name_for_image']), ' ')
+            } for i in data]
+
+            response_data = {
+                'data': formatted_data,
+                'all_count_of_models': all_count_of_models,
+                'all_count_of_vehicles': self.format_number(all_count_of_vehicles),
+                'all_sum_of_costs_vehicle': self.format_money(all_sum_of_cost_vehicles)
+            }
+
+        cache.set(cache_key, response_data, timeout=CACHE_TIME)
+        return Response(response_data)
+
+
+# class MarkSearchView(APIView):
+#     def format_money(self, number):
+#         # Check if the number is a float
+#         number = float(number)
+#         return f'{number:,.2f}'
+
+#     def get(self, request, *args, **kwargs):
+#         img = mark_images()
+#         latest_file_id = Data20.objects.aggregate(latest_file_id=Max('file_id'))['latest_file_id']
+#         mark_id = request.GET.get('mark_id', None)
+
+#         result = []
+
+#         def find_index(mark_name, model_name):
+#             for index, res in enumerate(result):
+#                 if mark_name == res['mark_name'] and model_name == res['model_name']:
+#                     return index
+#             return None
+
+#         if mark_id is not None:
+#             cached_data_mark_id = cache.get(f'mark_search_{latest_file_id}_{mark_id}')
+#             if cached_data_mark_id is not None:
+#                 return Response(cached_data_mark_id)
+#             models = Data20.objects.filter(file_id=latest_file_id, mark=mark_id).values(
+#                 'count', 'mark__mark_name', 'model__model_name', 'cost', 'model__id').annotate(
+#                 count_of_vehicles=Count('model')
+#             )
+#             pprint(models)
+#             for i in models:
+#                 mark_name = i['mark__mark_name']
+#                 model_name = i['model__model_name']
+#                 count_of_vehicle = i['count_of_vehicles']
+#                 count = i['count']
+#                 cost = i['cost']
+#                 model_id = i['model__id']
+#                 if count == 0:
+#                     count = 1
+#                 count = count * count_of_vehicle
+#                 index = find_index(mark_name, model_name)
+#                 model_id = model_id
+
+#                 if index is not None:
+#                     result[index]['count_vehicle'] += count
+#                     result[index]['cost'] += round(cost)
+#                 else:
+#                     obj = {
+#                         'mark_id': mark_id,
+#                         'model_id': model_id,
+#                         'mark_name': mark_name,
+#                         'model_name': model_name,
+#                         'count_vehicle': count,
+#                         'cost': round(cost),
+#                     }
+#                     result.append(obj)
+#         all_count_of_vehicle = sum(j['count_vehicle'] for j in result)
+#         all_cost_of_vehicles = sum(j['cost'] for j in result)
+#         formatted_data = []
+#         for i in result:
+#             obj = {
+#                 'mark_id': i['mark_id'],
+#                 'model_id': i['model_id'],
+#                 'mark_name': i['mark_name'],
+#                 'model_name': i['model_name'],
+#                 'count_vehicle': i['count_vehicle'],
+#                 'cost': self.format_money(i['cost'] * i['count_vehicle'])
+#             }
+#             formatted_data.append(obj)
+#         img_mapping = {im['mark_name_for_image']: im['full_image_url'] for im in img}
+#         imgs = []
+
+#         for i in data_from_search:
+#             if i['mark_id'] in img_mapping:
+#                 imgs.append(img_mapping[i['mark_id']])
+#                 break
+#         data = {
+#             'data': formatted_data,
+#             'all_count_vehicles': all_count_of_vehicle,
+#             'all_count_of_vehicles': all_cost_of_vehicles
+#         }
+#         cache.set('mark_search_{latest_file_id}_{mark_id}', data, timeout=1)
+#         return Response(data)
+
+from django.db.models import Count, Max
+from django.core.cache import cache
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+from .models import Data20
+
+class MarkSearchView1(APIView):
+    def format_money(self, number):
+        number = float(number)
+        return f'{number:,.2f}'
+
+    def get(self, request, *args, **kwargs):
+        latest_file_id = Data20.objects.aggregate(latest_file_id=Max('file_id'))['latest_file_id']
         mark_id = request.GET.get('mark_id', None)
 
+        cache_key = f'mark_search_{latest_file_id}_{mark_id}'
+        cached_data_mark_id = cache.get(cache_key)
+        if cached_data_mark_id is not None:
+            return Response(cached_data_mark_id)
+
         result = []
-
-        def find_index(mark_name, model_name):
-            for index, res in enumerate(result):
-                if mark_name == res['mark_name'] and model_name == res['model_name']:
-                    return index
-            return None
-
         if mark_id is not None:
-            cached_data_mark_id = cache.get(f'mark_search_{latest_file_id}_{mark_id}')
-            if cached_data_mark_id is not None:
-                return Response(cached_data_mark_id)
-            models = Data20.objects.filter(file_id=latest_file_id, mark=mark_id).values(
-                'count', 'mark__mark_name', 'model__model_name', 'cost', 'model__id').annotate(
-                count_of_vehicles=Count('model')
-            )
-            pprint(models)
+            models = Data20.objects.filter(mark=mark_id).values(
+                'count', 'mark__mark_name', 'model__model_name', 'cost', 'model__id'
+            ).annotate(count_of_vehicles=Count('model'))
+            
             for i in models:
-                mark_name = i['mark__mark_name']
-                model_name = i['model__model_name']
-                count_of_vehicle = i['count_of_vehicles']
-                count = i['count']
-                cost = i['cost']
-                model_id = i['model__id']
-                if count == 0:
-                    count = 1
-                count = count * count_of_vehicle
-                index = find_index(mark_name, model_name)
-                model_id = model_id
-
+                index = next((index for index, res in enumerate(result) if i['mark__mark_name'] == res['mark_name'] and i['model__model_name'] == res['model_name']), None)
+                count = i['count'] * i['count_of_vehicles'] if i['count'] else i['count_of_vehicles']
+                
                 if index is not None:
                     result[index]['count_vehicle'] += count
-                    result[index]['cost'] += round(cost)
+                    result[index]['cost'] += round(i['cost'])
                 else:
-                    obj = {
+                    result.append({
                         'mark_id': mark_id,
-                        'model_id': model_id,
-                        'mark_name': mark_name,
-                        'model_name': model_name,
+                        'model_id': i['model__id'],
+                        'mark_name': i['mark__mark_name'],
+                        'model_name': i['model__model_name'],
                         'count_vehicle': count,
-                        'cost': round(cost),
-                    }
-                    result.append(obj)
+                        'cost': round(i['cost']),
+                    })
+
         all_count_of_vehicle = sum(j['count_vehicle'] for j in result)
         all_cost_of_vehicles = sum(j['cost'] for j in result)
-        formatted_data = []
-        for i in result:
-            obj = {
-                'mark_id': i['mark_id'],
-                'model_id': i['model_id'],
-                'mark_name': i['mark_name'],
-                'model_name': i['model_name'],
-                'count_vehicle': i['count_vehicle'],
-                'cost': self.format_money(i['cost'])
-            }
-            formatted_data.append(obj)
-        img_mapping = {im['mark_name_for_image']: im['full_image_url'] for im in img}
-        imgs = []
+        
+        formatted_data = [{
+            'mark_id': i['mark_id'],
+            'model_id': i['model_id'],
+            'mark_name': i['mark_name'],
+            'model_name': i['model_name'],
+            'count_vehicle': i['count_vehicle'],
+            'cost': self.format_money(i['cost'] * i['count_vehicle']),
+        } for i in result]
 
-        for i in data_from_search:
-            if i['mark_id'] in img_mapping:
-                imgs.append(img_mapping[i['mark_id']])
-                break
         data = {
             'data': formatted_data,
             'all_count_vehicles': all_count_of_vehicle,
-            'all_count_of_vehicles': all_cost_of_vehicles
+            'all_cost_of_vehicles': all_cost_of_vehicles
         }
-        cache.set('mark_search_{latest_file_id}_{mark_id}', data, timeout=60 * 60 * 24)
+
+        cache.set(cache_key, data, timeout=CACHE_TIME)
         return Response(data)
 
 
@@ -606,7 +795,7 @@ class ModelCountByMonthView2021(APIView):
             'all_count_vehicles': result_count,
             'all_cost_of_vehicles': self.format_money(all_cost_of_vehicles)
         }
-        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=60 * 60 * 24)
+        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=CACHE_TIME)
         return Response(data_)
 
 
@@ -694,7 +883,7 @@ class ModelCountByMonthView2022(APIView):
             'all_count_vehicles': result_count,
             'all_cost_of_vehicles': self.format_money(all_cost_of_vehicles),
         }
-        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=60 * 60 * 24)
+        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=CACHE_TIME)
         return Response(data_)
 
 
@@ -782,7 +971,7 @@ class ModelCountByMonthView2019(APIView):
             'all_count_vehicles': result_count,
             'all_cost_of_vehicles': self.format_money(all_cost_of_vehicles),
         }
-        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=60 * 60 * 24)
+        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=CACHE_TIME)
         return Response(data_)
 
 
@@ -870,7 +1059,7 @@ class ModelCountByMonthView2023(APIView):
             'all_count_vehicles': result_count,
             'all_cost_of_vehicles': self.format_money(all_cost_of_vehicles),
         }
-        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=60 * 60 * 24)
+        cache.set(f'model_search_{latest_file_id}_{model_name_search}', data_, timeout=CACHE_TIME)
         return Response(data_)
 
 
@@ -941,7 +1130,7 @@ class DashboardYearsStatisticsView(APIView):
             sorted_data = sorted(all_data, key=lambda x: x['count'], reverse=False)
             # print(json.dumps(all_data, indent=4, sort_keys=True))
             # all_data.sort(key=lambda x: x['count_of_models'], reverse=False)
-            # cache.set('all_data_cache', {'data': all_data}, timeout=60 * 60 * 24)
+            cache.set('all_data_cache', {'data': sorted_data,'all_count_of_vehicles': all_count_of_vehicles},timeout=CACHE_TIME)
             return Response({'data': sorted_data, 'all_count_of_vehicles': all_count_of_vehicles})
 
         if all_data_dash is None:
@@ -967,8 +1156,8 @@ class DashboardYearsStatisticsView(APIView):
                 # {'year': "2018", 'import_models': 11868},
                 # {'year': "2019", 'import_models': 12984},
 
-                {'year': "2016", 'import_models': 0},
-                {'year': "2017", 'import_models': 0},
+#                {'year': "2016", 'import_models': 0},
+ #               {'year': "2017", 'import_models': 0},
                 # {'year': "2018", 'import_models': 0},
                 {'year': "2019", 'import_models': 0},
             ]
@@ -989,18 +1178,18 @@ class DashboardYearsStatisticsView(APIView):
             # data19 = {'import_models': 8953}
 
             data = [
-                {
-                    'import_models': data16['import_models'],
-                    'year': '2016'
-                },
-                {
-                    'year': '2017',
-                    'import_models': data17['import_models']
-                },
-                {
-                    'year': '2018',
-                    'import_models': data18['import_models'],
-                },
+  #              {
+  #                  'import_models': data16['import_models'],
+  #                  'year': '2016'
+  #              },
+  #              {
+  #                  'year': '2017',
+  #                  'import_models': data17['import_models']
+  #              },
+  #              {
+  #                  'year': '2018',
+  #                  'import_models': data18['import_models'],
+  #              },
                 {
                     'year': '2019',
                     'import_models': data19['import_models']
@@ -1053,13 +1242,13 @@ class DashboardYearsStatisticsView(APIView):
                     'sum_vehicles_by_year': sum_vehicles
                 }
                 vehicles_by_years.append(obj)
-            # cache.set('dashboard_data', {'data_imports': data_imports_collect, 'data_productions': production_data,
-            #                              'vehicles_by_years': vehicles_by_years,
-            #                              'all_sum_import': self.format_number(all_sum_imports),
-            #                              'all_sum_production': self.format_number(all_sum_productions),
-            #                              'import_and_production': self.format_number(
-            #                                  all_sum_imports + all_sum_productions)
-            #                              }, timeout=60 * 60 * 24)
+            cache.set('dashboard_data', {'data_imports': data_imports_collect, 'data_productions': production_data,
+                                          'vehicles_by_years': vehicles_by_years,
+                                          'all_sum_import': self.format_number(all_sum_imports),
+                                          'all_sum_production': self.format_number(all_sum_productions),
+                                          'import_and_production': self.format_number(
+                                              all_sum_imports + all_sum_productions)
+                                          }, timeout=CACHE_TIME)
 
             response_data = {'data_imports': data_imports_collect, 'data_productions': production_data,
                              'vehicles_by_years': vehicles_by_years,
@@ -1446,7 +1635,7 @@ class DashboardTopMarks(APIView):
 
     def get(self, request):
         year = request.GET.get('year', None)
-        print(year, type(year))
+        # print(year, type(year))
         if year is not None:
             if year == '2020':
                 latest_file_id = Data20.objects.aggregate(latest_file_id=Max('file_id'))['latest_file_id']
@@ -1567,7 +1756,7 @@ class DashboardTopMarks(APIView):
                     format_money = self.format_money(i['cost'])
                     obj = {
                         'mark_id': i['mark_id'],
-                        'mark_name': i['mark_name'].capitalize(),
+                        'mark_name': i['mark_name'],
                         'count_of_models': i['count_of_models'],
                         'count_of_vehicles': i['count_of_vehicles'],
                         'cost': format_money

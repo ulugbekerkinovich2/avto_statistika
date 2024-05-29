@@ -78,7 +78,7 @@ class Command(BaseCommand):
     help = 'Inserts data from JSON file into the database.'
 
     def handle(self, *args, **options):
-        file_path = '/Users/jurakulovamadinabonu/Library/CloudStorage/OneDrive-Personal/Documents/python_projects/ulov/avto_statistika/utils/new_structure_result1.json'
+        file_path = '/var/www/workers/avto/avto_statistika/utils/new_structure_result1.json'
 
         # Open and load the JSON file
         with open(file_path, 'r', encoding='utf-8-sig') as file:

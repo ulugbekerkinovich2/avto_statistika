@@ -15,10 +15,12 @@ SECRET_KEY = 'django-insecure-3s$vp(&%=5j-)$4p%c-5%fjg^&wtxk*gt-m35(42$&q920(6l7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "185.217.131.98", "https://avto-statistics.netlify.app/"]
-BASE_URL = 'http://127.0.0.1:8000'
+# ALLOWED_HOSTS = ['dev.misterdev.uz', "185.217.131.98", "https://avto-statistics.netlify.app/", "127.0.0.1"]
+ALLOWED_HOSTS = ["*"]
+BASE_URL = 'https://dev.misterdev.uz'
 # Application definition
-
+minut = 5
+CACHE_TIME = minut * 2
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -32,6 +34,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'drf_spectacular',
+#    'dal',
+#    'dal_select2',
 ]
 ADMIN_TOOLS_INDEX_DASHBOARD = 'basic_app.dashboard.CustomIndexDashboard'
 CORS_ALLOW_ALL_ORIGINS = True
@@ -128,8 +132,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'avto',              # Your database name
         'USER': 'postgres',          # Your database user
-        'PASSWORD': '1234',          # Your database user's password
-        'HOST': 'localhost',               # Your database host (use 'localhost' if the database is on the same machine)
+        'PASSWORD': '998359015a@',          # Your database user's password
+        'HOST': '185.217.131.98',               # Your database host (use 'localhost' if the database is on the same machine)
         'PORT': '5432',                    # Your database port (default PostgreSQL port is 5432)
     }
 }
