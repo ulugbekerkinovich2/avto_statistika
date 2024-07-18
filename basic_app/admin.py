@@ -44,16 +44,28 @@ class Data21Admin(admin.ModelAdmin):
 admin.site.register(models.DATA21, Data21Admin)
 
 
+# class Data22Admin(admin.ModelAdmin):
+#     search_fields = ['time']
+#     search_help_text = "Search by time"  # Fix the attribute name
+#     list_filter = ['file_id', 'mark', 'model']  # Fix the attribute name for sorting
+#     list_per_page = 20
+#     list_display = ['cost', 'file_id', 'mark', 'model', 'country', 'count']
+
+
+# admin.site.register(models.DATA22, Data22Admin)
 class Data22Admin(admin.ModelAdmin):
-    search_fields = ['time']
-    search_help_text = "Search by time"  # Fix the attribute name
-    list_filter = ['file_id', 'mark', 'model']  # Fix the attribute name for sorting
+    search_fields = ['time', 'model__name']
+    search_help_text = "Search by time or model name"
+    list_filter = ['file_id', 'mark', 'model']
     list_per_page = 20
     list_display = ['cost', 'file_id', 'mark', 'model', 'country', 'count']
+    autocomplete_fields = ['model']  # Enable autocomplete for the model field
 
+class ModelAdmin(admin.ModelAdmin):
+    search_fields = ['name']  # Enable search for models by name
 
 admin.site.register(models.DATA22, Data22Admin)
-
+# admin.site.register(models.Model1, ModelAdmin)
 
 class Data19Admin(admin.ModelAdmin):
     search_fields = ['time']
