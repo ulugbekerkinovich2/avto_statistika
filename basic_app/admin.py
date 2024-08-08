@@ -18,7 +18,7 @@ class Model1Admin(admin.ModelAdmin):
     sortable_by = ['file_id']
     list_per_page = 10
     list_display = ['id', 'model_name', 'mark']
-    search_fields = ['model_name', 'mark_name']
+    # search_fields = ['model_name', 'mark_name']
 
 admin.site.register(models.Model1, Model1Admin)
 
@@ -73,29 +73,29 @@ class Data23Admin(admin.ModelAdmin):
     list_filter = ['file_id', 'mark', 'model']
     list_per_page = 20
     list_display = ['cost', 'file_id', 'mark', 'model', 'country', 'count']
-    search_fields = ['model__model_name', 'mark__mark_name']
+    search_fields = ['model__model_name', 'mark']
 
 admin.site.register(models.Data23, Data23Admin)
 
 
 class Data20(admin.ModelAdmin):
-    search_fields = ['time']
+    # search_fields = ['time']
     search_help_text = "Search by time"  # Fix the attribute name
     list_filter = ['file_id', 'mark', 'model', 'mode']  # Fix the attribute name for sorting
     list_per_page = 20
     list_display = ['mark', 'model', 'count', 'mode', 'cost']
     autocomplete_fields = ['mark', 'model']
-    search_fields = ['model_name', 'mark_name']
+    search_fields = ['model__model_name', 'mark__mark_name']
 admin.site.register(models.Data20, Data20)
 
 
 class ManufactureAdmin(admin.ModelAdmin):
     list_per_page = 10
     list_filter = ['model']
-    search_fields = ('model__model_name', 'model__mark__mark_name')
+    autocomplete_fields = ['mark', 'model']
+    search_fields = ('model__model_name', 'mark__mark_name')
     list_display = ['model', "manufactured_year", 'mark', 'count']
     search_fields = ['model', 'mark']
-#    autocomplete_fields = ['mark', 'model']
 admin.site.register(models.Manufacture, ManufactureAdmin)
 
 
